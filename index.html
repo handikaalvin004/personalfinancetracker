@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Tracker Premium</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+        
+        <header class="bg-emerald-800 text-white p-6 rounded-2xl shadow-md flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold">Personal Finance Tracker</h1>
+                <p class="text-emerald-200 text-sm mt-1">Sistem Terintegrasi Lengkap dengan Ekspor Dokumen Premium Per Periode Pilihan</p>
+            </div>
+            
+            <div class="bg-emerald-900/50 p-3 rounded-xl border border-emerald-700/60 flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
+                <div class="w-full sm:w-auto">
+                    <label class="block text-[10px] uppercase tracking-wider text-emerald-300 font-semibold mb-1">Periode Cetak Laporan</label>
+                    <input type="month" id="cetak-periode" class="w-full sm:w-auto px-3 py-1.5 bg-white text-gray-800 rounded-lg text-xs font-medium focus:outline-none">
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto pt-4 sm:pt-0">
+                    <button onclick="eksporExcel()" class="flex-1 sm:flex-none bg-emerald-600 text-white font-semibold px-4 py-1.5 rounded-lg shadow-sm hover:bg-emerald-500 transition text-xs flex items-center justify-center gap-1">
+                        🟢 Excel Pro
+                    </button>
+                    <button onclick="eksporPDF()" class="flex-1 sm:flex-none bg-amber-500 text-white font-semibold px-4 py-1.5 rounded-lg shadow-sm hover:bg-amber-400 transition text-xs flex items-center justify-center gap-1">
+                        🔴 PDF Pro
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="bg-emerald-900 text-white p-5 rounded-2xl shadow-sm">
+                <p class="text-xs font-medium text-emerald-200 uppercase">Sisa Saldo Bersih</p>
+                <p id="kpi-saldo" class="text-xl font-bold mt-1">Rp 0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <p class="text-xs font-medium text-gray-400 uppercase">💵 Cash / Tunai</p>
+                <p id="saldo-cash" class="text-lg font-bold text-gray-900 mt-1">Rp 0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <p class="text-xs font-medium text-gray-400 uppercase">🏦 Bank</p>
+                <p id="saldo-bank" class="text-lg font-bold text-gray-900 mt-1">Rp 0</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <p class="text-xs font-medium text-gray-400 uppercase">📱 E-Wallet</p>
+                <p id="saldo-ewallet" class="text-lg font-bold text-gray-900 mt-1">Rp 0</p>
+            </div>
+            <div class="bg-blue-50 p-5 rounded-2xl shadow-sm border border-blue-100">
+                <p class="text-xs font-medium text-blue-500 uppercase">🐷 Tabungan</p>
+                <p id="saldo-tabungan" class="text-lg font-bold text-blue-900 mt-1">Rp 0</p>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-6">
+                    <h2 id="form-title" class="text-lg font-bold text-gray-900 mb-4">Catat Transaksi</h2>
+                    <form id="form-transaksi" class="space-y-4">
+                        <input type="hidden" id="edit-id" value="">
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Tanggal</label>
+                            <input type="date" id="input-tanggal" required class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Deskripsi</label>
+                            <input type="text" id="input-deskripsi" required placeholder="Misal: Bayar SPP, Uang Buku" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Kategori</label>
+                                <select id="input-kategori" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600">
+                                    <option value="Gaji & Pendapatan">Gaji & Pendapatan</option>
+                                    <option value="Investasi & Sampingan">Investasi & Sampingan</option>
+                                    <option value="Makanan & Minuman">Makanan & Minuman</option>
+                                    <option value="Transportasi">Transportasi</option>
+                                    <option value="Sekolah / Pendidikan">Sekolah / Pendidikan</option>
+                                    <option value="Tempat Tinggal / Kos">Tempat Tinggal / Kos</option>
+                                    <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
+                                    <option value="Hiburan & Rekreasi">Hiburan & Rekreasi</option>
+                                    <option value="Belanja Keperluan">Belanja Keperluan</option>
+                                    <option value="Tabungan / Investasi">Tabungan / Investasi</option>
+                                    <option value="Lain-lain">Lain-lain</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Jenis</label>
+                                <select id="input-jenis" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600">
+                                    <option value="Pengeluaran">Pengeluaran</option>
+                                    <option value="Pemasukan">Pemasukan</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Sumber Dana / Wallet</label>
+                            <select id="input-metode" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600">
+                                <option value="Cash">💵 Cash (Tunai)</option>
+                                <option value="Bank">🏦 Bank</option>
+                                <option value="E-Wallet">📱 E-Wallet</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Jumlah (Rp)</label>
+                            <input type="number" id="input-jumlah" required placeholder="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600">
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button type="button" id="btn-batal" onclick="resetForm()" class="hidden w-1/3 bg-gray-200 text-gray-700 font-medium py-2.5 rounded-xl text-sm">Batal</button>
+                            <button type="submit" id="btn-submit" class="w-full bg-emerald-700 text-white font-medium py-2.5 rounded-xl text-sm shadow-sm">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-bold text-gray-900 mb-2">Proporsi Pengeluaran Bulanan (Tampilan Layar)</h2>
+                    <div class="w-full max-h-48 flex justify-center">
+                        <canvas id="chartKeuangan"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 class="text-lg font-bold text-gray-900">Riwayat Catatan Keuangan</h2>
+                        
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <input type="month" id="filter-bulan" onchange="updateUI()" class="px-3 py-1.5 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-600 bg-gray-50">
+                            
+                            <select id="filter-jenis" onchange="updateUI()" class="px-3 py-1.5 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-600 bg-gray-50">
+                                <option value="Semua">🔍 Semua Jenis</option>
+                                <option value="Pemasukan">🟢 Pemasukan</option>
+                                <option value="Pengeluaran">🔴 Pengeluaran</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table id="tabel-transaksi-utama" class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase border-b border-gray-100">
+                                    <th class="p-4">Tanggal</th>
+                                    <th class="p-4">Deskripsi</th>
+                                    <th class="p-4">Metode</th>
+                                    <th class="p-4">Kategori</th>
+                                    <th class="p-4 text-right">Jumlah</th>
+                                    <th class="p-4 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-body" class="divide-y divide-gray-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Data inisialisasi awal disinkronkan langsung dengan dokumen transaksi Anda
+        let transaksi = [
+            { id: 1, tanggal: "2026-06-01", deskripsi: "Gaji Utama Bulanan", kategori: "Gaji & Pendapatan", metode: "Bank", jenis: "Pemasukan", jumlah: 10000000 },
+            { id: 2, tanggal: "2026-06-02", deskripsi: "Beli Buku & Alat Tulis", kategori: "Sekolah / Pendidikan", metode: "Cash", jenis: "Pengeluaran", jumlah: 350000 },
+            { id: 3, tanggal: "2026-06-03", deskripsi: "Makan Siang Nasi Padang", kategori: "Makanan & Minuman", metode: "Cash", jenis: "Pengeluaran", jumlah: 28000 },
+            { id: 4, tanggal: "2026-06-05", deskripsi: "Isi Bensin Motor", kategori: "Transportasi", metode: "Cash", jenis: "Pengeluaran", jumlah: 45000 },
+            { id: 5, tanggal: "2026-06-10", deskripsi: "Bayar Biaya UKT / Semesteran", kategori: "Sekolah / Pendidikan", metode: "Bank", jenis: "Pengeluaran", jumlah: 1000000 },
+            { id: 6, tanggal: "2026-06-12", deskripsi: "Hasil Project Sampingan", kategori: "Investasi & Sampingan", metode: "E-Wallet", jenis: "Pemasukan", jumlah: 1500000 },
+            { id: 7, tanggal: "2026-06-15", deskripsi: "Bayar Tagihan Wi-Fi Rumah", kategori: "Tagihan & Utilitas", metode: "Bank", jenis: "Pengeluaran", jumlah: 350000 },
+            { id: 8, tanggal: "2026-06-20", deskripsi: "Nonton Film & Snack", kategori: "Hiburan & Rekreasi", metode: "E-Wallet", jenis: "Pengeluaran", jumlah: 95000 },
+            { id: 9, tanggal: "2026-06-25", deskripsi: "Nabung Reksadana Bulanan", kategori: "Tabungan / Investasi", metode: "Bank", jenis: "Pengeluaran", jumlah: 1500000 }
+        ];
+
+        let chartInstance = null;
+        
+        const bulanIni = new Date().toISOString().substring(0, 7);
+        document.getElementById("input-tanggal").value = new Date().toISOString().split('T')[0];
+        document.getElementById("filter-bulan").value = "2026-06"; // Set default ke Juni 2026 agar data langsung tampil
+        document.getElementById("cetak-periode").value = "2026-06";
+
+        function formatRupiah(angka) {
+            return "Rp " + angka.toLocaleString('id-ID');
+        }
+
+        function updateUI() {
+            const filterBulanNilai = document.getElementById("filter-bulan").value;
+            const filterJenisNilai = document.getElementById("filter-jenis").value;
+
+            let saldoCash = 0, saldoBank = 0, saldoEWallet = 0, saldoTabungan = 0;
+            
+            // Inisialisasi kategori sesuai template dokumen Anda
+            let pengeluaranPerKategori = {
+                "Makanan & Minuman": 0, "Transportasi": 0, "Sekolah / Pendidikan": 0,
+                "Tempat Tinggal / Kos": 0, "Tagihan & Utilitas": 0, "Hiburan & Rekreasi": 0,
+                "Belanja Keperluan": 0, "Tabungan / Investasi": 0, "Lain-lain": 0
+            };
+
+            const tbody = document.getElementById("tabel-body");
+            tbody.innerHTML = "";
+
+            // 1. Perhitungan Saldo Global Dompet Utama
+            transaksi.forEach(t => {
+                if (t.jenis === "Pemasukan") {
+                    if (t.metode === "Cash") saldoCash += t.jumlah;
+                    else if (t.metode === "Bank") saldoBank += t.jumlah;
+                    else if (t.metode === "E-Wallet") saldoEWallet += t.jumlah;
+                } else {
+                    if (t.kategori === "Tabungan / Investasi") saldoTabungan += t.jumlah;
+                    if (t.metode === "Cash") saldoCash -= t.jumlah;
+                    else if (t.metode === "Bank") saldoBank -= t.jumlah;
+                    else if (t.metode === "E-Wallet") saldoEWallet -= t.jumlah;
+                }
+            });
+
+            // 2. Filter data untuk Tampilan Layar Utama
+            let transaksiTerfilter = transaksi.filter(t => {
+                const bulanTransaksi = t.tanggal.substring(0, 7);
+                const cocokBulan = filterBulanNilai === "" || bulanTransaksi === filterBulanNilai;
+                const cocokJenis = filterJenisNilai === "Semua" || t.jenis === filterJenisNilai;
+                return cocokBulan && cocokJenis;
+            });
+
+            transaksiTerfilter.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+            transaksiTerfilter.forEach(t => {
+                if (t.jenis === "Pengeluaran" && pengeluaranPerKategori[t.kategori] !== undefined) {
+                    pengeluaranPerKategori[t.kategori] += t.jumlah;
+                }
+
+                let badgeStyle = t.metode === "Cash" ? "bg-amber-100 text-amber-800" : t.metode === "Bank" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800";
+                const warnaHarga = t.jenis === "Pemasukan" ? "text-emerald-600" : t.kategori === "Sekolah / Pendidikan" ? "text-blue-600" : "text-gray-900";
+
+                const row = `
+                    <tr class="hover:bg-gray-50/80 transition">
+                        <td class="p-4 text-gray-500">${t.tanggal}</td>
+                        <td class="p-4 font-medium text-gray-900">${t.deskripsi}</td>
+                        <td class="p-4"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeStyle}">${t.metode}</span></td>
+                        <td class="p-4 text-gray-500 text-xs">${t.kategori}</td>
+                        <td class="p-4 text-right font-semibold ${warnaHarga}">${formatRupiah(t.jumlah)}</td>
+                        <td class="p-4 text-center space-x-1 whitespace-nowrap">
+                            <button onclick="editTransaksi(${t.id})" class="text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs hover:bg-blue-100 transition">Edit</button>
+                            <button onclick="hapusTransaksi(${t.id})" class="text-rose-600 bg-rose-50 px-2 py-1 rounded text-xs hover:bg-rose-100 transition">Hapus</button>
+                        </td>
+                    </tr>`;
+                tbody.insertAdjacentHTML("beforeend", row);
+            });
+
+            if(transaksiTerfilter.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Tidak ada transaksi di periode filter ini.</td></tr>`;
+            }
+
+            document.getElementById("kpi-saldo").innerText = formatRupiah(saldoCash + saldoBank + saldoEWallet);
+            document.getElementById("saldo-cash").innerText = formatRupiah(saldoCash);
+            document.getElementById("saldo-bank").innerText = formatRupiah(saldoBank);
+            document.getElementById("saldo-ewallet").innerText = formatRupiah(saldoEWallet);
+            document.getElementById("saldo-tabungan").innerText = formatRupiah(saldoTabungan);
+
+            // 3. Render Grafik Chart
+            const ctx = document.getElementById('chartKeuangan').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(pengeluaranPerKategori).filter(k => pengeluaranPerKategori[k] > 0),
+                    datasets: [{ 
+                        data: Object.values(pengeluaranPerKategori).filter(v => v > 0), 
+                        backgroundColor: ['#10b981', '#3b82f6', '#2563eb', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#6b7280', '#14b8a6'], 
+                        borderWidth: 1.5 
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function dapatkanDataCetak() {
+            const periodeDipilih = document.getElementById("cetak-periode").value;
+            if (!periodeDipilih) {
+                alert("Silakan pilih periode bulan cetak terlebih dahulu!");
+                return null;
+            }
+            const hasilFilter = transaksi.filter(t => t.tanggal.substring(0, 7) === periodeDipilih);
+            if (hasilFilter.length === 0) {
+                alert(`Data catatan transaksi untuk periode ${periodeDipilih} tidak ditemukan.`);
+                return null;
+            }
+            return { data: hasilFilter, periode: periodeDipilih };
+        }
+
+        // --- EKSPOR EXCEL PREMIUM (Auto-Fit) ---
+        function eksporExcel() {
+            const paketCetak = dapatkanDataCetak();
+            if (!paketCetak) return;
+
+            const dataPeta = paketCetak.data.map((t, idx) => ({
+                "NO": idx + 1,
+                "TANGGAL": t.tanggal,
+                "DESKRIPSI TRANSAKSI": t.deskripsi.toUpperCase(),
+                "KATEGORI POS": t.kategori,
+                "ARUS KAS": t.jenis,
+                "METODE DOMPET": t.metode,
+                "NILAI NOMINAL": t.jumlah
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataPeta);
+            const wb = XLSX.utils.book_new();
+
+            // Auto-fit ukuran lebar kolom otomatis
+            const lebarKolom = Object.keys(dataPeta[0]).map(key => {
+                const panjangMaks = Math.max(
+                    key.length,
+                    ...dataPeta.map(item => item[key] ? item[key].toString().length : 0)
+                );
+                return { wch: panjangMaks + 4 };
+            });
+            ws['!cols'] = lebarKolom;
+
+            XLSX.utils.book_append_sheet(wb, ws, `Laporan Keuangan`);
+            XLSX.writeFile(wb, `Laporan_Keuangan_Pro_${paketCetak.periode}.xlsx`);
+        }
+
+        // --- EKSPOR PDF PREMIUM (Landscape, Emerald Theme & Dynamic Coloring) ---
+        function eksporPDF() {
+            const paketCetak = dapatkanDataCetak();
+            if (!paketCetak) return;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "l", unit: "mm", format: "a4" });
+            
+            // Header Aksen Atas Emerald
+            doc.setFillColor(15, 81, 50); 
+            doc.rect(0, 0, 297, 8, "F");
+            
+            // Judul Laporan
+            doc.setFont("Helvetica", "bold");
+            doc.setFontSize(18);
+            doc.setTextColor(33, 37, 41);
+            doc.text("LAPORAN BULANAN KEUANGAN PERSONAL", 14, 22);
+            
+            doc.setFont("Helvetica", "normal");
+            doc.setFontSize(11);
+            doc.setTextColor(108, 117, 125);
+            doc.text(`Periode Cetak Resmi: ${paketCetak.periode}  |  Diproduksi secara otomatis via Web Tracker`, 14, 28);
+            
+            // Garis pembatas pembuka
+            doc.setDrawColor(222, 226, 230);
+            doc.setLineWidth(0.4);
+            doc.line(14, 32, 283, 32);
+
+            const barisData = paketCetak.data.map((t, idx) => [
+                idx + 1, 
+                t.tanggal, 
+                t.deskripsi, 
+                t.kategori, 
+                t.metode, 
+                t.jenis === "Pemasukan" ? `+ ${formatRupiah(t.jumlah)}` : `- ${formatRupiah(t.jumlah)}`
+            ]);
+            
+            doc.autoTable({
+                startY: 38,
+                margin: { left: 14, right: 14 },
+                head: [['NO', 'TANGGAL', 'DESKRIPSI TRANSAKSI', 'KATEGORI POS', 'SUMBER WALLET', 'NILAI MUTASI']],
+                body: barisData,
+                theme: 'striped',
+                headStyles: { 
+                    fillColor: [15, 81, 50],
+                    textColor: [255, 255, 255], 
+                    fontStyle: 'bold',
+                    fontSize: 10
+                },
+                bodyStyles: {
+                    fontSize: 9.5,
+                    textColor: [49, 53, 59],
+                    cellPadding: 4
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 15 },
+                    1: { cellWidth: 30 },
+                    4: { halign: 'center', cellWidth: 35 },
+                    5: { halign: 'right', fontStyle: 'bold' }
+                },
+                // Logika pewarnaan otomatis: Hijau (Pemasukan), Merah (Pengeluaran)
+                didParseCell: function (data) {
+                    if (data.section === 'body' && data.column.index === 5) {
+                        const teksCell = data.cell.raw;
+                        if (teksCell.includes('+')) {
+                            data.cell.styles.textColor = [16, 185, 129]; 
+                        } else if (teksCell.includes('-')) {
+                            data.cell.styles.textColor = [225, 29, 72];
+                        }
+                    }
+                }
+            });
+
+            // Nomor halaman footer otomatis
+            const totalHalaman = doc.internal.getNumberOfPages();
+            for(let i = 1; i <= totalHalaman; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`Halaman ${i} dari ${totalHalaman}`, 14, 202);
+            }
+
+            doc.save(`Laporan_Keuangan_Premium_${paketCetak.periode}.pdf`);
+        }
+
+        // --- Operasional Standar CRUD Form ---
+        function editTransaksi(id) {
+            const t = transaksi.find(item => item.id === id);
+            if (!t) return;
+            document.getElementById("edit-id").value = t.id;
+            document.getElementById("input-tanggal").value = t.tanggal;
+            document.getElementById("input-deskripsi").value = t.deskripsi;
+            document.getElementById("input-kategori").value = t.kategori;
+            document.getElementById("input-jenis").value = t.jenis;
+            document.getElementById("input-metode").value = t.metode;
+            document.getElementById("input-jumlah").value = t.jumlah;
+            
+            document.getElementById("form-title").innerText = "Perbarui Transaksi ✏️";
+            document.getElementById("btn-batal").classList.remove("hidden");
+        }
+
+        function resetForm() {
+            document.getElementById("edit-id").value = "";
+            document.getElementById("input-deskripsi").value = "";
+            document.getElementById("input-jumlah").value = "";
+            document.getElementById("form-title").innerText = "Catat Transaksi";
+            document.getElementById("btn-batal").classList.add("hidden");
+        }
+
+        function hapusTransaksi(id) {
+            if (confirm("Hapus catatan transaksi ini?")) {
+                transaksi = transaksi.filter(t => t.id !== id);
+                updateUI();
+            }
+        }
+
+        document.getElementById("form-transaksi").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const id = document.getElementById("edit-id").value;
+            const dataBaru = {
+                id: id ? parseInt(id) : Date.now(),
+                tanggal: document.getElementById("input-tanggal").value,
+                deskripsi: document.getElementById("input-deskripsi").value,
+                kategori: document.getElementById("input-kategori").value,
+                jenis: document.getElementById("input-jenis").value,
+                metode: document.getElementById("input-metode").value,
+                jumlah: parseInt(document.getElementById("input-jumlah").value)
+            };
+
+            if (id) {
+                const i = transaksi.findIndex(t => t.id === parseInt(id));
+                transaksi[i] = dataBaru;
+            } else {
+                transaksi.push(dataBaru);
+            }
+            resetForm();
+            updateUI();
+        });
+
+        updateUI();
+    </script>
+</body>
+</html>
